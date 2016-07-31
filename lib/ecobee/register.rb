@@ -3,10 +3,10 @@ module Ecobee
   class Register
     attr_reader :result
 
-    def initialize(app_key: GEM_APP_KEY, scope: SCOPES[0])
-      @app_key = app_key
-      @scope = scope.to_s
-      @result = get_pin
+    def initialize(api_key: nil, scope: SCOPES[0])
+      raise ArgumentError.new('Missing api_key') unless api_key
+
+      @result = get_pin(api_key: api_key, scope: scope)
     end
 
     def code
@@ -23,25 +23,25 @@ module Ecobee
 
     private 
 
-    def get_pin
-      uri_pin = URI(URI_PIN % [@app_key, @scope])
-      result = JSON.parse Net::HTTP.get uri_pin
+    def get_pin(api_key: nil, scope: nil)
+      uri_pin = URI(URL_GET_PIN % [api_key, scope.to_s])
+      result = JSON.parse Net::HTTP.get(uri_pin)
       if result.key? 'error'
-        raise Ecobee::PinError.new(
+        raise Ecobee::RegisterError.new(
           "Result Error: (%s) %s" % [result['error'], result['error_description']]
         )
       end
       result
     rescue SocketError => msg
-      raise Ecobee::PinError.new("GET failed: #{msg}")
+      raise Ecobee::RegisterError.new("GET failed: #{msg}")
     rescue JSON::ParserError => msg
-      raise Ecobee::PinError.new("Result parsing: #{msg}")
+      raise Ecobee::RegisterError.new("Result parsing: #{msg}")
     rescue Exception => msg
-      raise Ecobee::PinError.new("Unknown Error: #{msg}")
+      raise Ecobee::RegisterError.new("Unknown Error: #{msg}")
     end
   end
 
-  class PinError < StandardError
+  class RegisterError < StandardError
   end
 
 end

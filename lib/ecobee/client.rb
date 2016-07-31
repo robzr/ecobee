@@ -8,26 +8,33 @@ module Ecobee
     end
 
     def get(arg, options = nil)
-      new_uri = URI_API + arg.sub(/^\//, '')
+      new_uri = URL_API + arg.sub(/^\//, '')
       new_uri += '?json=' + options.to_json if options
-
-      uri = URI(new_uri)
-      req = Net::HTTP::Get.new(uri)
-
-      req.set_content_type('application/json', { 'charset' => 'UTF-8' })
-      req['Authorization'] = "#{@token.type} #{@token.access_token}"
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      res = http.start { |http| http.request(req) }
-
-      #res.is_a?(Net::HTTPSuccess)
-      #Net::HTTPBadResponse
-      
-      res 
+      request = Net::HTTP::Get.new(URI new_uri)
+      request.set_content_type(*CONTENT_TYPE)
+      request['Authorization'] = @token.authorization
+      http.request(request)
     end
 
-    def post
+    def post(arg, options: {}, body: nil)
+      new_uri = "#{URL_API} #{arg.sub(/^\//, '')}"
+      request = Net::HTTP::Post.new(
+        URI new_uri, 
+        { 'format': json }.merge(options)
+      )
+      request.body = JSON.generate(body) if body
+      http.request(request)
+    end
+
+    private
+
+    def http
+      @http ||= Net::HTTP.new(API_HOST, API_PORT)
+      unless @http.active? 
+        @http.use_ssl = true
+        Net::HTTP.start(API_HOST, API_PORT)
+      end
+      @http
     end
 
   end

@@ -3,7 +3,6 @@ module Ecobee
   class Token
     attr_reader :access_token, 
                 :expires_at, 
-                :expires_in,
                 :pin,
                 :pin_message,
                 :refresh_token,
@@ -13,16 +12,17 @@ module Ecobee
                 :type
 
     def initialize(
-      app_key: GEM_APP_KEY, 
+      api_key: nil, 
+      app_name: DEFAULT_APP_NAME,
       code: nil,
       refresh_token: nil,
       scope: SCOPES[0],
       token_file: nil
     )
-      @app_key = app_key
+      @api_key = api_key
+      @app_name = app_name
       @code = code
-      @interval = DEFAULT_INTERVAL
-      @pin = nil
+      @access_token, @expires_at, @pin, @type = nil
       @refresh_token = refresh_token
       @scope = scope
       @status = :authorization_pending
@@ -32,14 +32,18 @@ module Ecobee
         refresh
       else
         register unless code
-        get_token
-        launch_monitor_thread
+        check_for_token
+        launch_monitor_thread unless @status == :ready
       end
     end
 
     def access_token
-      refresh if Time.now + PRE_REFRESH_INTERVAL > @expires_at
+      refresh if Time.now + REFRESH_INTERVAL_PAD > @expires_at
       @access_token
+    end
+
+    def authorization
+      "#{@type} #{@access_token}"
     end
 
     def pin_message
@@ -49,26 +53,25 @@ module Ecobee
 
     def refresh
       response = Net::HTTP.post_form(
-        URI(URI_TOKEN),
+        URI(URL_TOKEN),
         'grant_type' => 'refresh_token',
         'refresh_token' => @refresh_token,
-        'client_id' => @app_key
+        'client_id' => @api_key
       )
       result = JSON.parse(response.body)
       if result.key? 'error'
-        pp result
+#        pp result
         raise Ecobee::TokenError.new(
           "Result Error: (%s) %s" % [result['error'],
                                      result['error_description']]
         )
       else
-        @status = :ready
         @access_token = result['access_token']
-        @type = result['token_type']
-        @expires_in = result['expires_in']
-        @expires_at = Time.now + @expires_in
+        @expires_at = Time.now + result['expires_in']
         @refresh_token = result['refresh_token']
         @scope = result['scope']
+        @type = result['token_type']
+        @status = :ready
         write_token_file
       end
     rescue SocketError => msg
@@ -86,12 +89,12 @@ module Ecobee
 
     private
 
-    def get_token
+    def check_for_token
       response = Net::HTTP.post_form(
-        URI(URI_TOKEN),
+        URI(URL_TOKEN),
         'grant_type' => 'ecobeePin',
         'code' => @code,
-        'client_id' => @app_key
+        'client_id' => @api_key
       )
       result = JSON.parse(response.body)
       if result.key? 'error'
@@ -106,8 +109,7 @@ module Ecobee
         @status = :ready
         @access_token = result['access_token']
         @type = result['token_type']
-        @expires_in = result['expires_in']
-        @expires_at = Time.now + @expires_in
+        @expires_at = Time.now + result['expires_in']
         @refresh_token = result['refresh_token']
         @scope = result['scope']
         write_token_file
@@ -123,33 +125,40 @@ module Ecobee
     def launch_monitor_thread
       Thread.new {
         loop do
-          sleep @interval
+          sleep REFRESH_TOKEN_CHECK
           break if @status == :ready
-          get_token 
+          check_for_token 
         end
       }
     end
 
     def read_token_file
-      File.open(@token_file, 'r') do |tf|
-        @refresh_token = tf.gets.chomp
+      tf = File.open(@token_file, 'r').read(16 * 1024)
+      config = JSON.parse(tf)
+      if config.key? @app_name
+        @app_key ||= config[@app_name]['app_key']
+        @refresh_token = config[@app_name]['refresh_token']
       end
     rescue Errno::ENOENT
+    end
+
+    def register
+      result = Register.new(api_key: @api_key, scope: @scope)
+      @pin = result.pin
+      @code = result.code
+      result
     end
 
     def write_token_file
       return unless @token_file
       File.open(@token_file, 'w') do |tf|
-        tf.puts @refresh_token
+        tf.puts JSON.pretty_generate({
+          @app_name => {
+            'app_key' => @app_key,
+            'refresh_token' => @refresh_token
+          }
+        })
       end
-    end
-
-    def register
-      result = Register.new(app_key: @app_key, scope: @scope)
-      @pin = result.pin
-      @code = result.code
-      @interval = result.interval
-      result
     end
 
   end
