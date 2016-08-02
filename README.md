@@ -10,23 +10,12 @@ Ecobee API Ruby Gem.  Implements:
 TODO:
 - Add timeout to Ecobee::Token#wait
 - Convert storage to optional block/proc
+- Redirect based registration
 - Implement throttling / blocking (?)
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'ecobee'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install ecobee
+The latest ecobee Ruby Gem is [available from Rubygems.org](https://rubygems.org/gems/ecobee), or via running `gem install ecobee` from the command line..
 
 ## Usage
 
