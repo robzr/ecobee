@@ -1,9 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'pp'
-
-#require 'ecobee'
-require_relative '../lib/ecobee'
+require 'ecobee'
 
 token = Ecobee::Token.new(
   api_key: ENV['ECOBEE_API_KEY'],

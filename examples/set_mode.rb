@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'pp'
-require_relative '../lib/ecobee'
+require 'ecobee'
 
 HVAC_MODES = ['auto', 'auxHeatOnly', 'cool', 'heat', 'off', 'quit']
 

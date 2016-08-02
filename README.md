@@ -1,6 +1,16 @@
 # Ecobee
 
-Ecobee API Ruby Gem.  Handles OAuth PIN-based token registration & renewal, and methods for working with Ecobee GET & PUSH.
+Ecobee API Ruby Gem.  Implements: 
+- OAuth PIN-based token registration & renewal
+- Persistent HTTP connection
+- Methods for get & push requests
+- Persistent storage for API key & refresh tokens
+- Example usage scripts (see /examples/\*)
+
+TODO:
+- Implement throttling / blocking (?)
+- Convert storage to generic hook
+
 
 ## Installation
 
@@ -20,7 +30,16 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Obtain an Application Key from Ecobee by [registering your project](https://www.ecobee.com/developers).
+
+Using Ecobee::Token, obtain an OAuth Access Token
+- Instantiate Ecobee::Token with the api_key and desired scope
+- Give user Ecobee::Token#pin and instructions to register your Application via the [Ecobee My Apps Portal](https://www.ecobee.com/consumerportal/index.html#/my-apps)
+- You can call Ecobee::Token#wait to block until the user confirms the PIN code.
+
+Instantiate Ecobee::Client with the token object.
+
+Call Ecobee::Client#get or Ecobee::Client#push to interact with [Ecobee's API](https://www.ecobee.com/home/developer/api/introduction/index.shtml)
 
 ## Development
 
