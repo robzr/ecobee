@@ -11,18 +11,18 @@ module Ecobee
       new_uri = URL_API + arg.sub(/^\//, '')
       new_uri += '?json=' + options.to_json if options
       request = Net::HTTP::Get.new(URI new_uri)
-      request.set_content_type(*CONTENT_TYPE)
+      request['Content-Type'] = *CONTENT_TYPE
       request['Authorization'] = @token.authorization
       http.request(request)
     end
 
     def post(arg, options: {}, body: nil)
-      new_uri = "#{URL_API} #{arg.sub(/^\//, '')}"
-      request = Net::HTTP::Post.new(
-        URI new_uri, 
-        { 'format': json }.merge(options)
-      )
+      new_uri = URL_API + arg.sub(/^\//, '')
+      request = Net::HTTP::Post.new(URI new_uri)
+      request.set_form_data({ 'format': 'json' }.merge(options))
       request.body = JSON.generate(body) if body
+      request['Content-Type'] = *CONTENT_TYPE
+      request['Authorization'] = @token.authorization
       http.request(request)
     end
 

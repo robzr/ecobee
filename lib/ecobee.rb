@@ -15,7 +15,7 @@ module Ecobee
   DEFAULT_APP_NAME = 'ecobee-gem'
 
   REFRESH_INTERVAL_PAD = 60
-  REFRESH_TOKEN_CHECK = 20 
+  REFRESH_TOKEN_CHECK = 10 
 
   SCOPES = [:smartRead, :smartWrite]
   

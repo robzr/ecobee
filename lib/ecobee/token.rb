@@ -98,8 +98,8 @@ module Ecobee
       )
       result = JSON.parse(response.body)
       if result.key? 'error'
-        unless result['error'] == 'authorization_pending'
-          pp result
+        unless ['slow_down', 'authorization_pending'].include? result['error']
+pp result
           raise Ecobee::TokenError.new(
             "Result Error: (%s) %s" % [result['error'],
                                        result['error_description']]
