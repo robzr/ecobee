@@ -8,32 +8,37 @@ Ecobee API Ruby Gem.  Implements:
 - Example usage scripts (see /examples/\*)
 
 Status:
-- Works, but basic.
+- Working, but is very basic. Contact me with feature requests.
 
 TODO:
-- Add documentation
+- Document
+- Convert token storage to optional block/proc
 - Add timeout to Ecobee::Token#wait
-- Convert storage to optional block/proc
-- Redirect based registration
-- Implement throttling / blocking (?)
+- Add Redirect based registration
+- Implement throttling / blocking
 - Helper methods/classes for building/reading requests
 
 ## Installation
 
-The latest ecobee Ruby Gem is [available from Rubygems.org](https://rubygems.org/gems/ecobee), or by running `gem install ecobee` from the command line..
+The latest ecobee Ruby Gem is [available from Rubygems.org](https://rubygems.org/gems/ecobee).
+
+To install from the command line, run:
+```
+gem install ecobee
+```
 
 ## Usage
 
-Obtain an Application Key from Ecobee by [registering your project](https://www.ecobee.com/developers).
+1. Obtain an Application Key from Ecobee by [registering your project](https://www.ecobee.com/developers).
 
-Using Ecobee::Token, obtain an OAuth Access Token
+2. Using Ecobee::Token, obtain an OAuth Access Token
 - Instantiate Ecobee::Token with the api_key and desired scope
 - Give user Ecobee::Token#pin and instructions to register your Application via the [Ecobee My Apps Portal](https://www.ecobee.com/consumerportal/index.html#/my-apps)
 - You can call Ecobee::Token#wait to block until the user confirms the PIN code.
 
-Instantiate Ecobee::Client with the token object.
+3. Instantiate Ecobee::Client with the token object.
 
-Call Ecobee::Client#get or Ecobee::Client#push to interact with [Ecobee's API](https://www.ecobee.com/home/developer/api/introduction/index.shtml)
+4. Call Ecobee::Client#get or Ecobee::Client#push to interact with [Ecobee's API](https://www.ecobee.com/home/developer/api/introduction/index.shtml)
 
 ## Development
 
