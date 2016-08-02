@@ -68,7 +68,9 @@ token = Ecobee::Token.new(
 puts token.pin_message if token.pin
 token.wait
 
-test_functions = TestFunctions.new(Ecobee::Client.new(token: token))
+test_functions = TestFunctions.new(
+  Ecobee::Client.new(token: token)
+)
 
 loop do
   test_functions.print_summary

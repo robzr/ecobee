@@ -8,9 +8,9 @@ Ecobee API Ruby Gem.  Implements:
 - Example usage scripts (see /examples/\*)
 
 TODO:
+- Add timeout to Ecobee::Token#wait
+- Convert storage to optional block/proc
 - Implement throttling / blocking (?)
-- Convert storage to generic hook
-
 
 ## Installation
 
