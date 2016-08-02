@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+#
+# Refreshes token; displays details on saved token.  -- @robzr
 
 require 'pp'
 require 'ecobee'
