@@ -7,15 +7,20 @@ Ecobee API Ruby Gem.  Implements:
 - Persistent storage for API key & refresh tokens
 - Example usage scripts (see /examples/\*)
 
+Status:
+- Works, but basic.
+
 TODO:
+- Add documentation
 - Add timeout to Ecobee::Token#wait
 - Convert storage to optional block/proc
 - Redirect based registration
 - Implement throttling / blocking (?)
+- Helper methods/classes for building/reading requests
 
 ## Installation
 
-The latest ecobee Ruby Gem is [available from Rubygems.org](https://rubygems.org/gems/ecobee), or via running `gem install ecobee` from the command line..
+The latest ecobee Ruby Gem is [available from Rubygems.org](https://rubygems.org/gems/ecobee), or by running `gem install ecobee` from the command line..
 
 ## Usage
 
