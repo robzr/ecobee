@@ -32,8 +32,8 @@ gem install ecobee
 1. Obtain an Application Key from Ecobee by [registering your project](https://www.ecobee.com/developers).
 
 2. Using Ecobee::Token, obtain an OAuth Access Token.
-  - Instantiate Ecobee::Token with the api_key and desired scope
-  - Give user Ecobee::Token#pin and instructions to register your Application via the [Ecobee My Apps Portal](https://www.ecobee.com/consumerportal/index.html#/my-apps)
+  - Instantiate Ecobee::Token with the api_key and desired scope.
+  - Give user Ecobee::Token#pin and instructions to register your Application via the [Ecobee My Apps Portal](https://www.ecobee.com/consumerportal/index.html#/my-apps).
   - You can call Ecobee::Token#wait to block until the user confirms the PIN code.
 
 3. Instantiate Ecobee::Client with the token object.

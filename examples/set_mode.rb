@@ -1,4 +1,7 @@
 #!/usr/bin/env ruby
+#
+# Loops through menu showing current thermostat mode, with option
+# to change the mode.       -- @robzr
 
 require 'pp'
 require 'ecobee'
@@ -76,7 +79,7 @@ loop do
   test_functions.print_summary
 
   answer = -1
-  while !answer.between?(0, HVAC_MODES.length)
+  until answer.between?(0, HVAC_MODES.length - 1)
     puts
     (1..HVAC_MODES.length).each do |num|
       printf "%d) %s\n", num, HVAC_MODES[num - 1]
