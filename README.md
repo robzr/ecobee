@@ -38,7 +38,7 @@ gem install ecobee
 
 3. Instantiate Ecobee::Client with the token object.
 
-4. Call Ecobee::Client#get or Ecobee::Client#push to interact with [Ecobee's API](https://www.ecobee.com/home/developer/api/introduction/index.shtml).
+4. Call Ecobee::Client#get or Ecobee::Client#post to interact with [Ecobee's API](https://www.ecobee.com/home/developer/api/introduction/index.shtml).
 
 ## Development
 
