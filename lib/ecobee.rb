@@ -12,7 +12,7 @@ module Ecobee
   API_PORT = 443
   CONTENT_TYPE = ['application/json', { 'charset' => 'UTF-8' }]
 
-  DEFAULT_APP_NAME = 'ecobee-gem'
+  HVAC_MODES = ['auto', 'auxHeatOnly', 'cool', 'heat', 'off']
 
   REFRESH_INTERVAL_PAD = 60
   REFRESH_TOKEN_CHECK = 10 
@@ -22,8 +22,10 @@ module Ecobee
   URL_BASE= "https://#{API_HOST}:#{API_PORT}"
 
   URL_API = "#{URL_BASE}/1/"
-  URL_GET_PIN = "#{URL_BASE}/authorize?response_type=ecobeePin&client_id=%s&scope=%s"
+  URL_GET_PIN = URL_BASE + 
+    '/authorize?response_type=ecobeePin&client_id=%s&scope=%s'
   URL_TOKEN = "#{URL_BASE}/token"
+
 
   def self.Model(model)
     { 'idtSmart'    => 'ecobee Smart',
@@ -55,8 +57,32 @@ module Ecobee
       15 => 'Duplicate data violation.',
       16 => 'Invalid token. Token has been deauthorized by user. You must ' +
             're-request authorization.'
-    }[core] || 'Unknown Error.'
+    }[code] || 'Unknown Error.'
+  end
+
+  def self.Selection(arg = {})
+    { 'selection' => {
+        'selectionType' => 'registered',
+        'selectionMatch' => '',
+        'includeRuntime' => 'false',
+        'includeExtendedRuntime' => 'false',
+        'includeElectricity' => 'false',
+        'includeSettings' => 'false',
+        'includeLocation' => 'false',
+        'includeProgram' => 'false',
+        'includeEvents' => 'false',
+        'includeDevice' => 'false',
+        'includeTechnician' => 'false',
+        'includeUtility' => 'false',
+        'includeAlerts' => 'false',
+        'includeWeather' => 'false',
+        'includeOemConfig' => 'false',
+        'includeEquipmentStatus' => 'false',
+        'includeNotificationSettings' => 'false',
+        'includeVersion' => 'false',
+        'includeSensors' => 'false',
+      }.merge(Hash[*arg.map { |k,v| [k.to_s, v.to_s] }.flatten])
+    }
   end
 
 end
-

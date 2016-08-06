@@ -4,9 +4,12 @@
 
 require 'pp'
 require 'ecobee'
+require_relative '/Users/robzr/GitHub/ecobee/lib/ecobee/token.rb'
+require_relative '/Users/robzr/GitHub/ecobee/lib/ecobee/register.rb'
 
 token = Ecobee::Token.new(
-  api_key: ENV['ECOBEE_API_KEY'],
+  app_key: ENV['ECOBEE_API_KEY'],
+  app_name: 'ecobee-gem',
   token_file: '~/.ecobee_token'
 )
 

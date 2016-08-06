@@ -10,7 +10,8 @@ module Ecobee
     def get(arg, options = nil)
       new_uri = URL_API + arg.sub(/^\//, '')
       new_uri += '?json=' + options.to_json if options
-      request = Net::HTTP::Get.new(URI new_uri)
+
+      request = Net::HTTP::Get.new(URI(URI.escape(new_uri)))
       request['Content-Type'] = *CONTENT_TYPE
       request['Authorization'] = @token.authorization
       http.request(request)
@@ -19,7 +20,7 @@ module Ecobee
     def post(arg, options: {}, body: nil)
       new_uri = URL_API + arg.sub(/^\//, '')
       request = Net::HTTP::Post.new(URI new_uri)
-      request.set_form_data({ 'format': 'json' }.merge(options))
+      request.set_form_data({ 'format' => 'json' }.merge(options))
       request.body = JSON.generate(body) if body
       request['Content-Type'] = *CONTENT_TYPE
       request['Authorization'] = @token.authorization
