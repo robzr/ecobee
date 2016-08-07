@@ -2,10 +2,10 @@ require 'pp'
 require 'json'
 require 'net/http'
 
-require "ecobee/client"
-require "ecobee/register"
-require "ecobee/token"
-require "ecobee/version"
+require 'ecobee/client'
+require 'ecobee/register'
+require 'ecobee/token'
+require 'ecobee/version'
 
 module Ecobee
   API_HOST = 'api.ecobee.com'
