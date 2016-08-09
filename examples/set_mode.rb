@@ -5,8 +5,7 @@
 
 require 'pp'
 
-#require 'ecobee'
-require_relative '../lib/ecobee.rb'
+require 'ecobee'
 
 @hvac_modes = Ecobee::HVAC_MODES + ['quit']
 
@@ -60,10 +59,7 @@ class TestFunctions
   end
 end
 
-token = Ecobee::Token.new(
-  app_key: ENV['ECOBEE_APP_KEY'],
-  app_name: 'ecobee-gem'
-)
+token = Ecobee::Token.new(app_key: ENV['ECOBEE_APP_KEY'])
 
 puts token.pin_message if token.pin
 token.wait 

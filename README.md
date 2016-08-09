@@ -2,21 +2,22 @@
 
 Ecobee API Ruby Gem.  Implements: 
 - OAuth PIN-based token registration & renewal
-- Persistent HTTP connection
-- Methods for GET & POST requests
+- Persistent HTTP connection management
+- Methods for GET & POST requests w/ JSON parsing & error handling
 - Persistent storage for API key & refresh tokens
 - Example usage scripts (see /examples/\*)
 
-Status:
-- Working, but is very basic. Contact me with feature requests.
-
 TODO:
-- Document API
-- Convert token storage to optional block/proc
+- Add and test more robust Status != 0 handling via Exceptions; document
+- Add retries for specific !0 statuses
+- Add random timeout padding to avoid race conditions with multiple clients when refreshing tokens
+- Add RDoc documentation
+- Add block/proc support to token storage routines
 - Add timeout to Ecobee::Token#wait
 - Add redirect based registration
-- Implement throttling / blocking
-- Helper methods/classes for building/reading requests
+- Implement throttling algorithm based on API feedback 
+- Create helper methods/classes with more abstraction
+- Create examples of proper error handling
 
 ## Installation
 

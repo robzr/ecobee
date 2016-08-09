@@ -3,12 +3,10 @@
 # Refreshes token; displays details on saved token.  -- @robzr
 
 require 'pp'
-require_relative '../lib/ecobee.rb'
 
-token = Ecobee::Token.new(
-  app_key: ENV['ECOBEE_APP_KEY'],
-  app_name: 'ecobee-gem'
-)
+require 'ecobee'
+
+token = Ecobee::Token.new(app_key: ENV['ECOBEE_APP_KEY'])
 
 puts token.pin_message if token.pin
 token.wait
