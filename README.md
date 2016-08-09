@@ -8,6 +8,7 @@ Ecobee API Ruby Gem.  Implements:
 - Example usage scripts (see /examples/\*)
 
 TODO:
+- Move all HTTP interaction to a dedicated/shared class
 - Add and test more robust Status != 0 handling via Exceptions; document
 - Add retries for specific !0 statuses
 - Add random timeout padding to avoid race conditions with multiple clients when refreshing tokens
