@@ -44,6 +44,7 @@ module Ecobee
     rescue Exception => msg
       raise Ecobee::TokenError.new("Unknown Error: #{msg}")
     end
+
   end
 
 end

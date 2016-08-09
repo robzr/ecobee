@@ -6,26 +6,28 @@ require 'ecobee/client'
 require 'ecobee/register'
 require 'ecobee/token'
 require 'ecobee/version'
+#require_relative 'ecobee/client'
+#require_relative 'ecobee/register'
+#require_relative 'ecobee/token'
+#require_relative 'ecobee/version'
 
 module Ecobee
   API_HOST = 'api.ecobee.com'
   API_PORT = 443
   CONTENT_TYPE = ['application/json', { 'charset' => 'UTF-8' }]
-
+  DEFAULT_FILES = [
+    '~/Library/Mobile Documents/com~apple~CloudDocs/.ecobee_token',
+    '~/.ecobee_token'
+  ]
   HVAC_MODES = ['auto', 'auxHeatOnly', 'cool', 'heat', 'off']
-
-  REFRESH_INTERVAL_PAD = 60
+  REFRESH_INTERVAL_PAD = 120
   REFRESH_TOKEN_CHECK = 10 
-
-  SCOPES = [:smartRead, :smartWrite]
-  
+  SCOPES = [:smartWrite, :smartRead]
   URL_BASE= "https://#{API_HOST}:#{API_PORT}"
-
   URL_API = "#{URL_BASE}/1/"
   URL_GET_PIN = URL_BASE + 
     '/authorize?response_type=ecobeePin&client_id=%s&scope=%s'
   URL_TOKEN = "#{URL_BASE}/token"
-
 
   def self.Model(model)
     { 'idtSmart'    => 'ecobee Smart',

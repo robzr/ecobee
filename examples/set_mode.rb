@@ -4,7 +4,9 @@
 # to change the mode.       -- @robzr
 
 require 'pp'
-require 'ecobee'
+
+#require 'ecobee'
+require_relative '../lib/ecobee.rb'
 
 @hvac_modes = Ecobee::HVAC_MODES + ['quit']
 
@@ -14,7 +16,7 @@ class TestFunctions
   end
 
   def print_summary
-    http_response = @client.get(
+    response = @client.get(
       'thermostat', 
       { 
         'selection' => {
@@ -25,7 +27,6 @@ class TestFunctions
         }
       }
     )
-    response = JSON.parse(http_response.body)
 
     puts "Found %d thermostats." % response['thermostatList'].length
 
@@ -42,7 +43,7 @@ class TestFunctions
   end
 
   def update_mode(mode)
-    http_response = @client.post(
+    @client.post(
       'thermostat', 
       body: { 
         'selection' => {
@@ -56,18 +57,16 @@ class TestFunctions
         }
       }
     )
-    response = JSON.parse(http_response.body)
   end
 end
 
 token = Ecobee::Token.new(
   app_key: ENV['ECOBEE_APP_KEY'],
-  app_name: 'set_mode',
-  scope: :smartWrite,
-  token_file: '~/.ecobee_token'
+  app_name: 'ecobee-gem'
 )
 
-puts token.pin_message if token.pin token.wait 
+puts token.pin_message if token.pin
+token.wait 
 test_functions = TestFunctions.new(
   Ecobee::Client.new(token: token)
 )

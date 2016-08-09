@@ -14,7 +14,10 @@ module Ecobee
       request = Net::HTTP::Get.new(URI(URI.escape(new_uri)))
       request['Content-Type'] = *CONTENT_TYPE
       request['Authorization'] = @token.authorization
-      http.request(request)
+      http_response = http.request request
+      validate_status JSON.parse(http_response.body)
+    rescue JSON::ParserError => msg
+      raise ClientError.new("JSON::ParserError => #{msg}")
     end
 
     def post(arg, options: {}, body: nil)
@@ -24,7 +27,25 @@ module Ecobee
       request.body = JSON.generate(body) if body
       request['Content-Type'] = *CONTENT_TYPE
       request['Authorization'] = @token.authorization
-      http.request(request)
+      http_response = http.request request
+      validate_status JSON.parse http_response.body
+    rescue JSON::ParserError => msg
+      raise ClientError.new("JSON::ParserError => #{msg}")
+    end
+
+    def validate_status(response)
+      if !response.key? 'status'
+        raise ClientError.new('Missing Status')
+      elsif !response['status'].key? 'code'
+        raise ClientError.new('Missing Status Code')
+      elsif response['status']['code'] != 0
+        raise ClientError.new(
+          "GET Error: #{response['status']['code']} " +
+          "Message: #{response['status']['message']}"
+        )
+      else
+        response
+      end
     end
 
     private
@@ -39,5 +60,7 @@ module Ecobee
     end
 
   end
+
+  class ClientError < StandardError ; end
 
 end
