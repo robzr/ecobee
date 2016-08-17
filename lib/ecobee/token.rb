@@ -50,7 +50,7 @@ module Ecobee
     end
 
     def authorization
-      "#{@token_type} #{@access_token}"
+      "#{@token_type} #{access_token}"
     end
 
     def config_load

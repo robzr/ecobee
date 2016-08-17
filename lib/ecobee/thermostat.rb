@@ -24,18 +24,25 @@ module Ecobee
     }
 
     attr_accessor :client
-    attr_reader :index, :max_index, :orig_response
+    attr_reader :auto_refresh, :orig_response
 
     def initialize(
+      auto_refresh: 0,
       client: nil,
+      fake_index: nil,
       index: 0,
+      fake_max_index: 0,
       selection: nil,
       selection_args: {},
       token: nil,
       to_sym: true
     )
+      @auto_refresh = auto_refresh
+      # TODO: add auto-refresh thread handling
       @client = client || Ecobee::Client.new(token: token)
       @to_sym = to_sym
+      @fake_index = fake_index
+      @fake_max_index = fake_max_index
       @index = index
       @selection ||= Ecobee::Selection(
         DEFAULT_SELECTION_ARGS.merge(selection_args)
@@ -62,7 +69,15 @@ module Ecobee
     end
 
     def desired_cool=(temp)
-      set_hold_temp(cool_hold_temp: temp * 10)
+      set_hold(cool_hold_temp: temp.to_i * 10)
+    end
+
+    def desired_fan_mode
+      @orig_response['runtime']['desiredFanMode']
+    end
+
+    def desired_fan_mode=(fan)
+      set_hold(fan: fan)
     end
 
     def desired_heat
@@ -70,7 +85,7 @@ module Ecobee
     end
 
     def desired_heat=(temp)
-      set_hold_temp(heat_hold_temp: temp * 10)
+      set_hold(heat_hold_temp: temp.to_i * 10)
     end
 
     def desired_range
@@ -85,6 +100,14 @@ module Ecobee
         high_range = @orig_response['settings']['heatRangeHigh'] / 10
       end
       (@orig_response['settings']['heatRangeLow'] / 10..high_range)
+    end
+
+    def index
+      @fake_index || @index
+    end
+
+    def max_index
+      [@fake_index || 0, @max_index, @fake_max_index].max
     end
 
     def mode
@@ -108,9 +131,17 @@ module Ecobee
       }
     end
 
+    def name
+      if @fake_index
+        "Fake No. #{@fake_index}"
+      else
+        @orig_response['name']
+      end
+    end
+
     def refresh
       response = @client.get(:thermostat, @selection)
-      if index + 1 > response['thermostatList'].length
+      if @index + 1 > response['thermostatList'].length
         raise ThermostatError.new('No such thermostat')
       end
       @max_index = response['thermostatList'].length - 1
@@ -147,16 +178,20 @@ module Ecobee
       end
     end
 
-    def set_hold_temp(
+    def set_hold(
       cool_hold_temp: @orig_response['runtime']['desiredCool'],
+      fan: nil,
       heat_hold_temp: @orig_response['runtime']['desiredHeat'],
       hold_type: 'nextTransition'
     )
-      update(functions: [{ 'type' => 'setHold',
-                           'params' => {
-                             'holdType' => 'nextTransition',
-                             'coolHoldTemp' => cool_hold_temp,
-                             'heatHoldTemp' => heat_hold_temp } }])
+      params = { 
+        'holdType' => 'nextTransition',
+        'coolHoldTemp' => cool_hold_temp,
+        'heatHoldTemp' => heat_hold_temp
+      }
+      params.merge!({ 'fan' => fan }) if fan
+
+      update(functions: [{ 'type' => 'setHold', 'params' => params }])
     end
 
     def set_mode(mode)

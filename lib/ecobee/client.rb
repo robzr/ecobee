@@ -10,12 +10,16 @@ module Ecobee
     def get(arg, options = nil)
       new_uri = URL_API + arg.to_s.sub(/^\//, '')
       new_uri += '?json=' + options.to_json if options
-
       request = Net::HTTP::Get.new(URI(URI.escape(new_uri)))
       request['Content-Type'] = *CONTENT_TYPE
       request['Authorization'] = @token.authorization
       http_response = http.request request
-      validate_status JSON.parse(http_response.body)
+      response = validate_status JSON.parse(http_response.body)
+#      if response == :retry
+#        get(arg, options)
+#      else
+#        response
+#      end
     rescue JSON::ParserError => msg
       raise ClientError.new("JSON::ParserError => #{msg}")
     end
@@ -28,7 +32,12 @@ module Ecobee
       request['Content-Type'] = *CONTENT_TYPE
       request['Authorization'] = @token.authorization
       http_response = http.request request
-      validate_status JSON.parse http_response.body
+      response = validate_status JSON.parse http_response.body
+#      if response == :retry
+#        post(arg, options: options, body: body)
+#      else
+#        response
+#      end
     rescue JSON::ParserError => msg
       raise ClientError.new("JSON::ParserError => #{msg}")
     end
@@ -38,6 +47,8 @@ module Ecobee
         raise ClientError.new('Missing Status')
       elsif !response['status'].key? 'code'
         raise ClientError.new('Missing Status Code')
+      elsif response['status']['code'] == 14 
+        :retry
       elsif response['status']['code'] != 0
         raise ClientError.new(
           "GET Error: #{response['status']['code']} " +

@@ -31,6 +31,8 @@ module Ecobee
     slow_down 
   }
 
+  FAN_MODES = %w{auto on}
+
   HVAC_MODES = %w{auto auxHeatOnly cool heat off}
 
   REFRESH_PAD = 120
@@ -44,13 +46,19 @@ module Ecobee
     '/authorize?response_type=ecobeePin&client_id=%s&scope=%s'
   URL_TOKEN = "#{URL_BASE}/token"
 
+  def self.FanMode(mode)
+    { 'auto'        => 'Auto',
+      'on'          => 'On'
+    }.fetch(mode, 'Unknown')
+  end
+
   def self.Mode(mode)
     { 'auto'        => 'Auto',
       'auxHeatOnly' => 'Aux Heat Only',
       'cool'        => 'Cool',
       'heat'        => 'Heat',
       'off'         => 'Off'
-    }[mode] || 'Unknown'
+    }.fetch(mode, 'Unknown')
   end
 
   def self.Model(model)
@@ -61,7 +69,7 @@ module Ecobee
       'athenaSmart' => 'ecobee3 Smart',
       'athenaEms'   => 'ecobee3 EMS',
       'corSmart'    => 'Carrier or Bryant Cor',
-    }[model] || "Unknown (#{model})"
+    }.fetch(model, "Unknown (#{model})")
   end
 
   def self.ResponseCode(code)
@@ -83,7 +91,7 @@ module Ecobee
       15 => 'Duplicate data violation.',
       16 => 'Invalid token. Token has been deauthorized by user. You must ' +
             're-request authorization.'
-    }[code.to_i] || 'Unknown Error.'
+    }.fetch(code.to_i, 'Unknown Error.')
   end
 
   def self.Selection(arg = {})
