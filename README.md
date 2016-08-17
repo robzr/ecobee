@@ -5,19 +5,16 @@ Ecobee API Ruby Gem.  Implements:
 - Persistent HTTP connection management
 - Methods for GET & POST requests w/ JSON parsing & error handling
 - Persistent storage for API key & refresh tokens
+- Block/Proc hooks for token storage load/save to add app config data
+- Abstraction class for simple thermostat interaction
 - Example usage scripts (see /examples/\*)
 
 TODO:
-- Move all HTTP interaction to a dedicated/shared class
-- Add and test more robust Status != 0 handling via Exceptions; document
-- Add retries for specific !0 statuses
-- Add random timeout padding to avoid race conditions with multiple clients when refreshing tokens
+- Add dedicated symbol class to Thermostat
 - Add RDoc documentation
-- Add block/proc support to token storage routines
 - Add timeout to Ecobee::Token#wait
 - Add redirect based registration
 - Implement throttling algorithm based on API feedback 
-- Create helper methods/classes with more abstraction
 - Create examples of proper error handling
 
 ## Installation
@@ -38,9 +35,11 @@ gem install ecobee
   - Give user Ecobee::Token#pin and instructions to register your Application via the [Ecobee My Apps Portal](https://www.ecobee.com/consumerportal/index.html#/my-apps).
   - You can call Ecobee::Token#wait to block until the user confirms the PIN code.
 
-3. Instantiate Ecobee::Client with the token object.
+3. Instantiate Ecobee::Thermostat with the token object.
 
-4. Call Ecobee::Client#get or Ecobee::Client#post to interact with [Ecobee's API](https://www.ecobee.com/home/developer/api/introduction/index.shtml).
+4. Use the simplified methods for common interactions, access the Thermostat object directly as a Hash to read values, or use the update method to post changes.
+
+5. Ecobee::Client#get or Ecobee::Client#post can be used for advanced interaction with [Ecobee's API](https://www.ecobee.com/home/developer/api/introduction/index.shtml).
 
 ## Development
 
