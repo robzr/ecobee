@@ -8,7 +8,7 @@ module Ecobee
     end
 
     def get(arg, options = nil)
-      new_uri = URL_API + arg.sub(/^\//, '')
+      new_uri = URL_API + arg.to_s.sub(/^\//, '')
       new_uri += '?json=' + options.to_json if options
 
       request = Net::HTTP::Get.new(URI(URI.escape(new_uri)))
@@ -21,7 +21,7 @@ module Ecobee
     end
 
     def post(arg, options: {}, body: nil)
-      new_uri = URL_API + arg.sub(/^\//, '')
+      new_uri = URL_API + arg.to_s.sub(/^\//, '')
       request = Net::HTTP::Post.new(URI new_uri)
       request.set_form_data({ 'format' => 'json' }.merge(options))
       request.body = JSON.generate(body) if body

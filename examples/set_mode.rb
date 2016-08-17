@@ -5,7 +5,7 @@
 
 require 'pp'
 
-require 'ecobee'
+require_relative '../lib/ecobee'
 
 @hvac_modes = Ecobee::HVAC_MODES + ['quit']
 
@@ -15,17 +15,11 @@ class TestFunctions
   end
 
   def print_summary
-    response = @client.get(
-      'thermostat', 
-      { 
-        'selection' => {
-          'selectionType' => 'registered',
-          'selectionMatch' => '', 
-          'includeEquipmentStatus' => 'true',
-          'includeSettings' => 'true'
-        }
-      }
-    )
+    response = @client.get(:thermostat, 
+                           Ecobee::Selection(
+                             includeEquipmentStatus: true,
+                             includeSettings: true
+                           ))
 
     puts "Found %d thermostats." % response['thermostatList'].length
 
@@ -42,27 +36,22 @@ class TestFunctions
   end
 
   def update_mode(mode)
-    @client.post(
-      'thermostat', 
-      body: { 
-        'selection' => {
-          'selectionType' => 'registered',
-          'selectionMatch' => '',
-        },
-        'thermostat' => {
-          'settings' => {
-            'hvacMode' => mode
-          }
-        }
-      }
-    )
+    @client.post('thermostat',
+                 body: { 
+                   'thermostat' => {
+                     'settings' => { 'hvacMode' => mode }
+                   }
+                 }.merge(Ecobee::Selection()))
   end
 end
 
 token = Ecobee::Token.new(app_key: ENV['ECOBEE_APP_KEY'])
 
-puts token.pin_message if token.pin
-token.wait 
+if token.pin
+  puts token.pin_message
+  token.wait 
+end
+
 test_functions = TestFunctions.new(
   Ecobee::Client.new(token: token)
 )
