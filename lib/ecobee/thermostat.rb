@@ -25,7 +25,7 @@ module Ecobee
     }
 
     attr_accessor :client
-    attr_reader :auto_refresh, :orig_response
+    attr_reader :auto_refresh
 
     def initialize(
       auto_refresh: 0,
@@ -35,13 +35,11 @@ module Ecobee
       fake_max_index: 0,
       selection: nil,
       selection_args: {},
-      token: nil,
-      to_sym: true
+      token: nil
     )
       @auto_refresh = auto_refresh
       # TODO: add auto-refresh thread handling
       @client = client || Ecobee::Client.new(token: token)
-      @to_sym = to_sym
       @fake_index = fake_index
       @fake_max_index = fake_max_index
       @index = index
@@ -51,30 +49,38 @@ module Ecobee
       refresh
     end
 
-    def cool_range(with_delta: false)
-      if with_delta
-        low_range = [@orig_response['settings']['coolRangeLow'] / 10,
-                     desired_heat + heat_cool_min_delta].max
-      else
-        low_range = @orig_response['settings']['coolRangeLow'] / 10
-      end
-      (low_range..@orig_response['settings']['coolRangeHigh'] / 10)
+    def celsius?
+      self[:settings][:useCelsius]
     end
 
-    def heat_cool_min_delta
-      @orig_response['settings']['heatCoolMinDelta'] / 10
+    def cool_range(with_delta: false)
+      if with_delta
+        low_range = [unitize(self[:settings][:coolRangeLow]),
+                     desired_heat + heat_cool_min_delta].max
+      else
+        low_range = unitize(self[:settings][:coolRangeLow])
+      end
+      to_range(low_range, unitize(self[:settings][:coolRangeHigh]))
+    end
+
+    def dump(pretty: true)
+      if pretty
+        self.select { |k, v| k.is_a? Symbol }.pretty_inspect
+      else
+        self.select { |k, v| k.is_a? Symbol }
+      end
     end
 
     def desired_cool
-      @orig_response['runtime']['desiredCool'] / 10
+      unitize(self[:runtime][:desiredCool])
     end
 
     def desired_cool=(temp)
-      set_hold(cool_hold_temp: temp.to_i * 10)
+      set_hold(cool_hold_temp: temp)
     end
 
     def desired_fan_mode
-      @orig_response['runtime']['desiredFanMode']
+      self[:runtime][:desiredFanMode]
     end
 
     def desired_fan_mode=(fan)
@@ -82,25 +88,34 @@ module Ecobee
     end
 
     def desired_heat
-      @orig_response['runtime']['desiredHeat'] / 10
+      unitize(self[:runtime][:desiredHeat])
     end
 
     def desired_heat=(temp)
-      set_hold(heat_hold_temp: temp.to_i * 10)
+      # need celcius un_unitize
+      set_hold(heat_hold_temp: temp)
     end
 
     def desired_range
-      (desired_heat..desired_cool)
+      to_range(desired_heat, desired_cool)
+    end
+
+    def heat_cool_min_delta
+      unitize(self[:settings][:heatCoolMinDelta])
     end
 
     def heat_range(with_delta: false)
       if with_delta
-        high_range = [@orig_response['settings']['heatRangeHigh'] / 10,
+        high_range = [unitize(self[:settings][:heatRangeHigh]),
                      desired_cool - heat_cool_min_delta].min
       else
-        high_range = @orig_response['settings']['heatRangeHigh'] / 10
+        high_range = unitize(self[:settings][:heatRangeHigh])
       end
-      (@orig_response['settings']['heatRangeLow'] / 10..high_range)
+      to_range(unitize(self[:settings][:heatRangeLow]), high_range)
+    end
+
+    def humidity
+      self[:runtime][:actualHumidity]
     end
 
     def index
@@ -112,7 +127,7 @@ module Ecobee
     end
 
     def mode
-      @orig_response['settings']['hvacMode']
+      self[:settings][:hvacMode]
     end
 
     def mode=(mode)
@@ -120,14 +135,14 @@ module Ecobee
     end
 
     def model
-      Ecobee::Model(@orig_response['modelNumber'])
+      Ecobee::Model(self[:modelNumber])
     end
 
     def my_selection
       { 
         'selection' => {
           'selectionType' => 'thermostats',
-          'selectionMatch' => @orig_response['identifier']
+          'selectionMatch' => self[:identifier]
         }
       }
     end
@@ -136,7 +151,7 @@ module Ecobee
       if @fake_index
         "Fake No. #{@fake_index}"
       else
-        @orig_response['name']
+        self[:name]
       end
     end
 
@@ -146,21 +161,41 @@ module Ecobee
         raise ThermostatError.new('No such thermostat')
       end
       @max_index = response['thermostatList'].length - 1
-      @orig_response = response['thermostatList'][@index]
+      list = response['thermostatList'][@index]
  
-      self.replace(@to_sym ? to_sym(@orig_response) : @orig_response)
+      self.replace list.merge(to_sym(list))
     end 
 
-    def humidity
-      @orig_response['runtime']['actualHumidity']
+    def set_hold(
+      cool_hold_temp: unitize(self[:runtime][:desiredCool]),
+      fan: nil,
+      heat_hold_temp: unitize(self[:runtime][:desiredHeat]),
+      hold_type: 'nextTransition'
+    )
+      params = { 
+        'holdType' => 'nextTransition',
+        'coolHoldTemp' => un_unitize(cool_hold_temp),
+        'heatHoldTemp' => un_unitize(heat_hold_temp)
+      }
+      params.merge!({ 'fan' => fan }) if fan
+      update(functions: [{ 'type' => 'setHold', 'params' => params }])
+    end
+
+    def set_mode(mode)
+      update(thermostat: { 'settings' => { 'hvacMode' => mode } })
     end
 
     def temperature
-      @orig_response['runtime']['actualTemperature'] / 10.0
+      unitize(self[:runtime][:actualTemperature])
     end
 
-    def to_sym?
-      @to_sym
+    def to_range(low, high)
+      if celsius?
+        ((low * 2).round..(high * 2).round).to_a
+          .map { |deg| deg / 2.0 }
+      else
+        (low.round..high.round).to_a
+      end
     end
 
     def to_sym(obj = self)
@@ -179,24 +214,23 @@ module Ecobee
       end
     end
 
-    def set_hold(
-      cool_hold_temp: @orig_response['runtime']['desiredCool'],
-      fan: nil,
-      heat_hold_temp: @orig_response['runtime']['desiredHeat'],
-      hold_type: 'nextTransition'
-    )
-      params = { 
-        'holdType' => 'nextTransition',
-        'coolHoldTemp' => cool_hold_temp,
-        'heatHoldTemp' => heat_hold_temp
-      }
-      params.merge!({ 'fan' => fan }) if fan
-
-      update(functions: [{ 'type' => 'setHold', 'params' => params }])
+    def un_unitize(value)
+      if celsius?
+        (((value.to_f * 9/5) + 32) * 10).round
+      else
+        (value.to_f * 10).round
+      end
     end
 
-    def set_mode(mode)
-      update(thermostat: { 'settings' => { 'hvacMode' => mode } })
+    # converts Ecobee farenheit * 10 integer input, returns 
+    #  farenheit or celsius output rounded to nearest .5
+    def unitize(value)
+      if celsius?
+        celsius = (value.to_f / 10.0 - 32) * 5/9
+        (celsius / 5).round(1) * 5
+      else
+        value.to_f / 10.0
+      end
     end
 
     def update(
