@@ -1,4 +1,5 @@
 module Ecobee
+
   class Register
     attr_reader :expires_at, :result
 
@@ -47,4 +48,5 @@ module Ecobee
     end
 
   end
+
 end

@@ -2,11 +2,6 @@ require 'pp'
 require 'json'
 require 'net/http'
 
-#require 'ecobee/client'
-#require 'ecobee/register'
-#require 'ecobee/token'
-#require 'ecobee/version'
-
 require_relative 'ecobee/client'
 require_relative 'ecobee/register'
 require_relative 'ecobee/thermostat'
@@ -35,7 +30,7 @@ module Ecobee
 
   HVAC_MODES = %w{auto auxHeatOnly cool heat off}
 
-  REFRESH_PAD = 120
+  REFRESH_PAD = 30
   REFRESH_TOKEN_CHECK = 10 
 
   SCOPES = [:smartWrite, :smartRead]

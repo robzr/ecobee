@@ -1,4 +1,5 @@
 module Ecobee
+
   class ThermostatError < StandardError ; end
 
   class Thermostat < Hash
@@ -209,4 +210,5 @@ module Ecobee
     end
 
   end
+
 end

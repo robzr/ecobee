@@ -1,4 +1,5 @@
 module Ecobee
+
   class Token
     attr_reader :access_token, 
                 :access_token_expire, 
@@ -40,13 +41,16 @@ module Ecobee
     end
 
     def access_token
-      if(@access_token && @access_token_expire &&
-         Time.now.to_i + @refresh_pad < @access_token_expire)
-        @status = :ready
+      if(@access_token && @access_token_expire && !access_token_expired?)
+        @status = (@refresh_token ? :ready : :authorization_pending)
         @access_token
       else
         refresh_access_token
       end
+    end
+
+    def access_token_expired?
+      Time.now.to_i > @access_token_expire - @refresh_pad
     end
 
     def authorization
@@ -90,8 +94,11 @@ module Ecobee
       result = JSON.parse(response.body)
       if result.key? 'error'
         if result['error'] == 'invalid_grant'
-          @status = :authorization_pending
-          check_for_authorization
+          if access_token_expired?
+            register
+          else
+            check_for_authorization
+          end
         else
           puts "DUMPING(result): #{result.pretty_inspect}"
           raise Ecobee::TokenError.new(
@@ -134,6 +141,7 @@ module Ecobee
 
     private
 
+    # arrives here, expired
     def check_for_authorization
       check_for_authorization_single
       if @status == :authorization_pending
@@ -160,7 +168,6 @@ module Ecobee
       result = JSON.parse(response.body)
       if result.key? 'error'
         @status = :authorization_pending
-
         if result['error'] == 'invalid_client'
           register 
         elsif !['slow_down', 'authorization_pending'].include? result['error']
@@ -294,6 +301,7 @@ module Ecobee
       @pin = result.pin
       @access_token = result.code
       @access_token_expire = result.expires_at
+      @refresh_token = nil
       @scope = result.scope
       check_for_authorization
       config_save
@@ -302,7 +310,6 @@ module Ecobee
 
   end
 
-  class TokenError < StandardError
-  end
+  class TokenError < StandardError ; end
 
 end

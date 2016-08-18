@@ -1,7 +1,6 @@
 module Ecobee
 
   class Client
-
     def initialize(token: nil)
       raise ArgumentError.new('Missing token') unless token
       @token = token
@@ -69,7 +68,6 @@ module Ecobee
       end
       @http
     end
-
   end
 
   class ClientError < StandardError ; end
