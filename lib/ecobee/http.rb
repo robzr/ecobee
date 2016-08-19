@@ -1,6 +1,5 @@
 module Ecobee
-
-  class HTTPError < StandardError ; end
+class HTTPError < StandardError ; end
   class AuthError < HTTPError ; end
 
   class HTTP
@@ -127,6 +126,8 @@ module Ecobee
       elsif !response['status'].key? 'code'
         raise Ecobee::HTTPError.new('Validate Error: Missing Status Code')
       elsif response['status']['code'] == 14
+        log "validate_status: token expired access_token_expire: #{@token.access_token_expire}"
+        log "validate_status:                               now: #{Time.now.to_i}"
         :retry
       elsif response['status']['code'] != 0
         raise Ecobee::HTTPError.new(

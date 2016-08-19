@@ -240,7 +240,7 @@ module Ecobee
       body = my_selection
       body.merge!({ 'functions' => functions }) if functions
       body.merge!({ 'thermostat' => thermostat }) if thermostat
-      @http.post(:thermostat, body: body)
+      @http.post(arg: :thermostat, body: body)
     end
 
   end

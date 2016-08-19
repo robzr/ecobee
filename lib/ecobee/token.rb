@@ -26,6 +26,7 @@ module Ecobee
       access_token_expire: nil,
       app_key: nil,
       callbacks: {},
+      log_file: nil,
       refresh_token: nil,
       scope: SCOPES[0],
       token_file: DEFAULT_FILES
@@ -40,7 +41,8 @@ module Ecobee
 
       @authorization_thread, @pin, @status, @token_type = nil
       @poll_interval = DEFAULT_POLL_INTERVAL
-      @http = Ecobee::HTTP.new(log_file: "/tmp/token.log", token: self)
+
+      @http = Ecobee::HTTP.new(log_file: log_file, token: self)
 
       @refresh_pad = REFRESH_PAD + rand(REFRESH_PAD)
 
@@ -52,8 +54,10 @@ module Ecobee
      if @access_token
        if access_token_expired?
          if @refresh_token
+           @http.log "access_token: refreshing #{@access_token}, #{@access_token_expire}, #{Time.now.to_i}"
            refresh_access_token
          else
+           @http.log "access_token: token_register"
            token_register 
          end
        else
@@ -63,8 +67,10 @@ module Ecobee
              puts "Status: MISMATCH: #{@status} vs #{desired_status}" if @status
              @status = desired_status
            end
+           @http.log "access_token: good #{@access_token}, #{@access_token_expire}, #{Time.now.to_i}"
            @access_token
          else
+           @http.log "access_token: check_for_authorization #{@access_token}, #{@access_token_expire}"
            check_for_authorization
          end
        end
