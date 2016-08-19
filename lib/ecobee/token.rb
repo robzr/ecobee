@@ -5,15 +5,21 @@ module Ecobee
                 :access_token_expire, 
                 :app_key,
                 :callbacks,
+                :http,
                 :pin,
                 :refresh_token,
                 :result,
                 :status,
                 :scope,
+                :token_file,
                 :token_type
 
     #AUTH_ERRORS = %w(slow_down authorization_pending authorization_expired)
-    #VALID_STATUS = [:authorization_pending, :ready]
+
+    @STATUSES = {
+      authorization_pending: 'Registration begun but has not been approved.',
+      ready:                 'Registration approved and valid token received.'
+    }
 
     def initialize(
       access_token: nil,
@@ -33,6 +39,8 @@ module Ecobee
       @token_file = expand_files token_file
 
       @authorization_thread, @pin, @status, @token_type = nil
+      @poll_interval = DEFAULT_POLL_INTERVAL
+      @http = Ecobee::HTTP.new(log_file: "/tmp/token.log", token: self)
 
       @refresh_pad = REFRESH_PAD + rand(REFRESH_PAD)
 
@@ -41,15 +49,33 @@ module Ecobee
     end
 
     def access_token
-      if(@access_token && @access_token_expire && !access_token_expired?)
-        @status = (@refresh_token ? :ready : :authorization_pending)
-        @access_token
-      else
-        refresh_access_token
-      end
+     if @access_token
+       if access_token_expired?
+         if @refresh_token
+           refresh_access_token
+         else
+           token_register 
+         end
+       else
+         desired_status = (@refresh_token ? :ready : :authorization_pending)
+         if @refresh_token
+           if @status != desired_status
+             puts "Status: MISMATCH: #{@status} vs #{desired_status}" if @status
+             @status = desired_status
+           end
+           @access_token
+         else
+           check_for_authorization
+         end
+       end
+     else
+       @status = :authorization_pending
+       token_register 
+     end
     end
 
     def access_token_expired?
+      return true unless @access_token_expire
       Time.now.to_i > @access_token_expire - @refresh_pad
     end
 
@@ -85,27 +111,20 @@ module Ecobee
     end
 
     def refresh_access_token
-      response = Net::HTTP.post_form(
-        URI(URL_TOKEN),
-        'grant_type' => 'refresh_token',
-        'refresh_token' => @refresh_token || 0,
-        'client_id' => @app_key
-      )
-      result = JSON.parse(response.body)
+      arg = sprintf("?grant_type=refresh_token&refresh_token=%s&client_id=%s",
+                    @refresh_token,
+                    @app_key)
+      result = @http.post(arg: arg,
+                          no_auth: true,
+                          resource_prefix: 'token',
+                          validate_status: false)
       if result.key? 'error'
-        if result['error'] == 'invalid_grant'
-          if access_token_expired?
-            register
-          else
-            check_for_authorization
-          end
-        else
-          puts "DUMPING(result): #{result.pretty_inspect}"
-          raise Ecobee::TokenError.new(
-            "Result Error: (%s) %s" % [result['error'],
-                                       result['error_description']]
-          )
-        end
+        @access_token, @access_token_expire, @pin, @scope, @refresh_token = nil
+        config_save
+        raise Ecobee::AuthError.new(
+          "Result Error: (%s) %s" % [result['error'],
+                                     result['error_description']]
+        )
       else
         @access_token = result['access_token']
         @access_token_expire = Time.now.to_i + result['expires_in']
@@ -117,12 +136,6 @@ module Ecobee
         config_save
         @access_token
       end 
-    rescue SocketError => msg
-      raise Ecobee::TokenError.new("POST failed: #{msg}")
-    rescue JSON::ParserError => msg
-      raise Ecobee::TokenError.new("Result parsing: #{msg}")
-#    rescue Exception => msg
-#      raise Ecobee::TokenError.new("Unknown Error: #{msg}")
     end
 
     def register_callback(type, *callback, &block)
@@ -148,9 +161,10 @@ module Ecobee
         unless @authorization_thread && @authorization_thread.alive?
           @authorization_thread = Thread.new {
             loop do
-              # TODO: consider some intelligent throttling
-              sleep REFRESH_TOKEN_CHECK
+              puts "Sleeping for #{@poll_interval}"
+              sleep @poll_interval
               break if @status == :ready
+              puts "check_for_authorization_single"
               check_for_authorization_single
             end
           }
@@ -159,21 +173,23 @@ module Ecobee
     end
 
     def check_for_authorization_single
-      response = Net::HTTP.post_form(
-        URI(URL_TOKEN),
-        'grant_type' => 'ecobeePin',
-        'code' => @access_token,
-        'client_id' => @app_key
-      )
-      result = JSON.parse(response.body)
+      arg = sprintf("?grant_type=ecobeePin&code=%s&client_id=%s",
+                    @access_token,
+                    @app_key)
+      result = @http.post(arg: arg,
+                          no_auth: true,
+                          resource_prefix: 'token',
+                          validate_status: false)
       if result.key? 'error'
         @status = :authorization_pending
         if result['error'] == 'invalid_client'
-          register 
-        elsif !['slow_down', 'authorization_pending'].include? result['error']
-          # TODO: throttle or just ignore...?
-          pp result
-          raise Ecobee::TokenError.new(
+          token_register 
+        elsif ['slow_down', 'authorization_pending'].include? result['error']
+          nil
+        else
+          @access_token, @access_token_expire, @pin, @scope, @refresh_token = nil
+          config_save
+          raise Ecobee::AuthError.new(
             "Result Error: (%s) %s" % [result['error'],
                                        result['error_description']]
           )
@@ -189,12 +205,6 @@ module Ecobee
         config_save
         @access_token
       end
-    rescue SocketError => msg
-      raise Ecobee::TokenError.new("POST failed: #{msg}")
-    rescue JSON::ParserError => msg
-      raise Ecobee::TokenError.new("Result parsing: #{msg}")
-#    rescue Exception => msg
-#      raise Ecobee::TokenError.new("Unknown Error: #{msg}")
     end
 
     def config_load_to_memory(config)
@@ -246,7 +256,7 @@ module Ecobee
         File.open(file, 'r').read(16 * 1024)
       )
     rescue JSON::ParserError => msg
-      raise Ecobee::TokenError.new("Result parsing: #{msg}")
+      raise Ecobee::AuthError.new("Result parsing: #{msg}")
     rescue Errno::ENOENT
       {}
     end
@@ -295,21 +305,22 @@ module Ecobee
       end
     end
 
-    def register
+    def token_register
       @status = :authorization_pending
-      result = Register.new(app_key: @app_key, scope: @scope)
+      result = Ecobee::Register.new(app_key: @app_key,
+                                    http: @http,
+                                    scope: @scope)
+      @poll_interval = result.interval
       @pin = result.pin
       @access_token = result.code
-      @access_token_expire = result.expires_at
+      @access_token_expire = result.expire
       @refresh_token = nil
       @scope = result.scope
       check_for_authorization
       config_save
-      @access_token if @status == :ready
+      @access_token
     end
 
   end
-
-  class TokenError < StandardError ; end
 
 end

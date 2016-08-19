@@ -2,17 +2,25 @@ require 'pp'
 require 'json'
 require 'net/http'
 
-require_relative 'ecobee/client'
+require_relative 'ecobee/http'
 require_relative 'ecobee/register'
 require_relative 'ecobee/thermostat'
 require_relative 'ecobee/token'
 require_relative 'ecobee/version'
 
 module Ecobee
+
+  class HTTPError < StandardError ; end
+
+  class AuthError < HTTPError ; end
+
   API_HOST = 'api.ecobee.com'
   API_PORT = 443
+  API_URI_BASE= "https://#{API_HOST}:#{API_PORT}"
 
   CONTENT_TYPE = ['application/json', { 'charset' => 'UTF-8' }]
+
+  DEFAULT_POLL_INTERVAL = 30 
 
   DEFAULT_FILES = [
     '~/Library/Mobile Documents/com~apple~CloudDocs/.ecobee_token',
@@ -30,16 +38,12 @@ module Ecobee
 
   HVAC_MODES = %w{auto auxHeatOnly cool heat off}
 
+  MAX_LOG_LENGTH = 1200
+
   REFRESH_PAD = 30
-  REFRESH_TOKEN_CHECK = 10 
 
   SCOPES = [:smartWrite, :smartRead]
-
-  URL_BASE= "https://#{API_HOST}:#{API_PORT}"
-  URL_API = "#{URL_BASE}/1/"
-  URL_GET_PIN = URL_BASE + 
-    '/authorize?response_type=ecobeePin&client_id=%s&scope=%s'
-  URL_TOKEN = "#{URL_BASE}/token"
+  DEFAULT_SCOPE = SCOPES[1]
 
   def self.FanMode(mode)
     { 'auto'        => 'Auto',

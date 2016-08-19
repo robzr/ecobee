@@ -24,12 +24,10 @@ module Ecobee
       includeSensors: true
     }
 
-    attr_accessor :client
-    attr_reader :auto_refresh
+    attr_reader :auto_refresh, :http
 
     def initialize(
       auto_refresh: 0,
-      client: nil,
       fake_index: nil,
       index: 0,
       fake_max_index: 0,
@@ -37,9 +35,11 @@ module Ecobee
       selection_args: {},
       token: nil
     )
-      @auto_refresh = auto_refresh
       # TODO: add auto-refresh thread handling
-      @client = client || Ecobee::Client.new(token: token)
+      @auto_refresh = auto_refresh
+
+      raise ArgumentError.new('No token: specified') unless token
+      @http = token.http
       @fake_index = fake_index
       @fake_max_index = fake_max_index
       @index = index
@@ -156,7 +156,7 @@ module Ecobee
     end
 
     def refresh
-      response = @client.get(:thermostat, @selection)
+      response = @http.get(arg: :thermostat, options: @selection)
       if @index + 1 > response['thermostatList'].length
         raise ThermostatError.new('No such thermostat')
       end
@@ -240,7 +240,7 @@ module Ecobee
       body = my_selection
       body.merge!({ 'functions' => functions }) if functions
       body.merge!({ 'thermostat' => thermostat }) if thermostat
-      @client.post(:thermostat, body: body)
+      @http.post(:thermostat, body: body)
     end
 
   end

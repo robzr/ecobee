@@ -1,12 +1,15 @@
 module Ecobee
 
   class Register
-    attr_reader :expires_at, :result
+    attr_reader :expire, :result
 
-    def initialize(app_key: nil, scope: SCOPES[0])
-      raise ArgumentError.new('Missing app_key') unless app_key
-      @result = get_pin(app_key: app_key, scope: scope)
-      @expires_at = Time.now.to_i + result['expires_in'] * 60
+    def initialize(
+      app_key: nil,
+      http: nil,
+      scope: DEFAULT_SCOPE
+    )
+      @result = get_pin(app_key: app_key, http: http, scope: scope)
+      @expire = Time.now.to_i + result['expires_in'] * 60
     end
 
     def code
@@ -25,26 +28,22 @@ module Ecobee
       @result['scope']
     end
 
-    private 
+    private
 
-    def get_pin(app_key: nil, scope: nil)
-      uri_pin = URI(URL_GET_PIN % [app_key, scope.to_s])
-      result = JSON.parse Net::HTTP.get(uri_pin)
+    def get_pin(app_key: nil, http: nil, scope: nil)
+      scope = scope.to_s if scope.is_a? Symbol
+      arg = "?response_type=ecobeePin&client_id=#{app_key}&scope=#{scope}"
+      result = http.get(arg: arg,
+                        no_auth: true,
+                        resource_prefix: 'authorize',
+                        validate_status: false)
       if result.key? 'error'
-        raise Ecobee::TokenError.new(
-          sprintf("Register Error: (%s) %s",
-                  result['error'],
-                  result['error_description'])
+        raise Ecobee::AuthError.new(
+          "Register Error: (#{result['error']}) #{result['error_description']}"
         )
       else
         result
       end
-    rescue SocketError => msg
-      raise Ecobee::TokenError.new("GET failed: #{msg}")
-    rescue JSON::ParserError => msg
-      raise Ecobee::TokenError.new("Parse Error: #{msg}")
-#    rescue Exception => msg
-#      raise Ecobee::TokenError.new("Unknown Error: #{msg}")
     end
 
   end

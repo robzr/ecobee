@@ -1,25 +1,25 @@
 #!/usr/bin/env ruby
 #
+# Example of using the Ecobee::HTTP API directly (bypassing the
+# Ecobee::Thermostat abstraction class).
+#
 # Loops through menu showing current thermostat mode, with option
-# to change the mode.       -- @robzr
+# to change the mode.
 
 require 'pp'
-
 require_relative '../lib/ecobee'
-
 @hvac_modes = Ecobee::HVAC_MODES + ['quit']
 
 class TestFunctions
-  def initialize(client)
-    @client = client
+  def initialize(token)
+    @http = token.http
   end
 
   def print_summary
-    response = @client.get(:thermostat, 
-                           Ecobee::Selection(
-                             includeEquipmentStatus: true,
-                             includeSettings: true
-                           ))
+    response = @http.get(arg: :thermostat, 
+                         options: Ecobee::Selection(
+                                    includeEquipmentStatus: true,
+                                    includeSettings: true))
 
     puts "Found %d thermostats." % response['thermostatList'].length
 
@@ -36,12 +36,12 @@ class TestFunctions
   end
 
   def update_mode(mode)
-    @client.post('thermostat',
-                 body: { 
-                   'thermostat' => {
-                     'settings' => { 'hvacMode' => mode }
-                   }
-                 }.merge(Ecobee::Selection()))
+    @http.post(arg: :thermostat,
+               body: { 
+                       'thermostat' => {
+                         'settings' => { 'hvacMode' => mode } 
+                       } 
+                     }.merge(Ecobee::Selection()))
   end
 end
 
@@ -52,9 +52,7 @@ if token.pin
   token.wait 
 end
 
-test_functions = TestFunctions.new(
-  Ecobee::Client.new(token: token)
-)
+test_functions = TestFunctions.new(token)
 
 loop do
   test_functions.print_summary
