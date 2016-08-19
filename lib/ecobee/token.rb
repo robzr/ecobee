@@ -147,8 +147,14 @@ module Ecobee
       end
     end
 
-    def wait
-      sleep 0.05 while @status == :authorization_pending
+    def wait(timeout: nil)
+      if timeout
+        Timeout::timeout(timeout) { wait(timeout: nil) }
+      else
+        sleep 0.01 while @status == :authorization_pending
+      end
+    rescue Timeout::Error
+    ensure
       @status
     end
 

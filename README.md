@@ -5,17 +5,14 @@ Ecobee API Ruby Gem.  Implements:
 - Persistent HTTP connection management
 - Methods for GET & POST requests w/ JSON parsing & error handling
 - Persistent storage for API key & refresh tokens
+- Storage uses iCloud Drive if available for shared computer use
 - Block/Proc hooks for token storage load/save to add app config data
-- Abstraction class for simple thermostat interaction
+- Thermostat abstraction class for simple thermostat interaction
 - Example usage scripts (see /examples/\*)
 
 TODO:
-- Add dedicated symbol class to Thermostat
 - Add RDoc documentation
-- Add timeout to Ecobee::Token#wait
 - Add redirect based registration
-- Implement throttling algorithm based on API feedback 
-- Create examples of proper error handling
 
 ## Installation
 
