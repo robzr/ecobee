@@ -168,23 +168,21 @@ module Ecobee
 
     # arrives here, expired
     def check_for_authorization
-      check_for_authorization_single
+      do_check_for_authorization
       if @status == :authorization_pending
         unless @authorization_thread && @authorization_thread.alive?
           @authorization_thread = Thread.new {
             loop do
-              puts "Sleeping for #{@poll_interval}"
               sleep @poll_interval
               break if @status == :ready
-              puts "check_for_authorization_single"
-              check_for_authorization_single
+              do_check_for_authorization
             end
           }
         end
       end
     end
 
-    def check_for_authorization_single
+    def do_check_for_authorization
       arg = sprintf("?grant_type=ecobeePin&code=%s&client_id=%s",
                     @access_token,
                     @app_key)
