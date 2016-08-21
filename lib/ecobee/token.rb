@@ -7,7 +7,6 @@ module Ecobee
                 :callbacks,
                 :http,
                 :pin,
-                :refresh_token,
                 :result,
                 :status,
                 :scope,
@@ -51,11 +50,12 @@ module Ecobee
     end
 
     def access_token
+     config_load if access_token_expired?
      if @access_token
        if access_token_expired?
          if @refresh_token
            @http.log "access_token: refreshing #{@access_token}, #{@access_token_expire}, #{Time.now.to_i}"
-           refresh_access_token
+           refresh_access_token_wrapper
          else
            @http.log "access_token: token_register"
            token_register 
@@ -90,6 +90,7 @@ module Ecobee
     end
 
     def config_load
+      # TODO: track file mod time & last_read to avoid excessive rereads
       config = config_read_our_section
       if @callbacks[:load].respond_to? :call
         config = @callbacks[:load].call(config)
@@ -116,32 +117,42 @@ module Ecobee
       "enter the PIN #{@pin || ''}"
     end
 
-    def refresh_access_token
+    def refresh_access_token(retries: 0)
       arg = sprintf("?grant_type=refresh_token&refresh_token=%s&client_id=%s",
-                    @refresh_token,
+                    refresh_token,
                     @app_key)
       result = @http.post(arg: arg,
                           no_auth: true,
                           resource_prefix: 'token',
                           validate_status: false)
       if result.key? 'error'
+        if retries > 0 && result['error'] == 'invalid_grant'
+          raise Ecobee::RetryAuthError.new
+        end
         @access_token, @access_token_expire, @pin, @scope, @refresh_token = nil
         config_save
-        raise Ecobee::AuthError.new(
-          "Result Error: (%s) %s" % [result['error'],
-                                     result['error_description']]
-        )
+        raise Ecobee::AuthError.new("Result Error: (%s) %s" % [
+                                    result['error'],
+                                    result['error_description']])
       else
-        @access_token = result['access_token']
-        @access_token_expire = Time.now.to_i + result['expires_in']
-        @pin = nil
-        @refresh_token = result['refresh_token']
-        @scope = result['scope']
-        @token_type = result['token_type']
-        @status = :ready
-        config_save
-        @access_token
+        result_load_to_memory result
       end 
+    end
+
+    def refresh_access_token_wrapper
+      retries = 3
+      retries.times do |attempt|
+        begin
+          refresh_access_token(retries: retries - attempt)
+        rescue Ecobee::RetryAuthError.new
+          sleep 10
+        end
+      end
+    end
+
+    def refresh_token
+      config_load
+      @refresh_token
     end
 
     def register_callback(type, *callback, &block)
@@ -205,16 +216,20 @@ module Ecobee
           )
         end
       else
-        @status = :ready
-        @access_token = result['access_token']
-        @token_type = result['token_type']
-        @access_token_expire = Time.now.to_i + result['expires_in']
-        @refresh_token = result['refresh_token']
-        @scope = result['scope']
-        @pin = nil
-        config_save
-        @access_token
+        result_load_to_memory result
       end
+    end
+
+    def result_load_to_memory(result)
+      @status = :ready
+      @access_token = result['access_token']
+      @access_token_expire = Time.now.to_i + result['expires_in']
+      @pin = nil
+      @refresh_token = result['refresh_token']
+      @scope = result['scope']
+      @token_type = result['token_type']
+      config_save
+      @access_token
     end
 
     def config_load_to_memory(config)

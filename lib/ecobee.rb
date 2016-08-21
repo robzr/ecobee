@@ -14,6 +14,8 @@ module Ecobee
 
   class AuthError < HTTPError ; end
 
+  class RetryAuthError < AuthError ; end
+
   API_HOST = 'api.ecobee.com'
   API_PORT = 443
   API_URI_BASE= "https://#{API_HOST}:#{API_PORT}"
@@ -40,7 +42,8 @@ module Ecobee
 
   MAX_LOG_LENGTH = 1200
 
-  REFRESH_PAD = 30
+  AUTH_PAD = 30
+  REFRESH_PAD = 240
 
   SCOPES = [:smartWrite, :smartRead]
   DEFAULT_SCOPE = SCOPES[1]

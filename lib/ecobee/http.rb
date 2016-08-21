@@ -110,6 +110,8 @@ class HTTPError < StandardError ; end
         Net::HTTP.start(API_HOST, API_PORT)
       end
       @http
+    rescue SocketError => msg
+      raise Ecobee::HTTPError.new("HTTP.http SocketError => #{msg}")
     end
 
     def open_log(log_file)
