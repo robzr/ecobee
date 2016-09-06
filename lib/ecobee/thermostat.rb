@@ -49,6 +49,18 @@ module Ecobee
       refresh
     end
 
+    def acknowledge(
+      ack_ref: nil,
+      ack_type: 'accept'
+    )
+      params = { 
+        'ackRef' => ack_ref,
+        'ackType' => ack_type,
+        'thermostatIdentifier' => self[:identifier]
+      }
+      update(functions: [{ 'type' => 'acknowledge', 'params' => params }])
+    end
+
     def celsius?
       self[:settings][:useCelsius]
     end
